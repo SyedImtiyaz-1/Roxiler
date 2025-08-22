@@ -2,6 +2,9 @@
 
 A full-stack web application that allows users to submit ratings for stores registered on the platform. Built with modern technologies and best practices.
 
+
+## Video Link : https://youtu.be/_vkwZiK7qVo
+
 ## 🚀 Features
 
 ### System Administrator
