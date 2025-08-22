@@ -1,4 +1,4 @@
-# Store Rating Web Application
+# Store Rating Web Application (for Roxiler)
 
 A full-stack web application that allows users to submit ratings for stores registered on the platform. Built with modern technologies and best practices.
 
