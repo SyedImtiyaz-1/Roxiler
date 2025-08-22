@@ -16,7 +16,10 @@ import type {
   DashboardStats,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative URL for production (Vercel) or environment variable for development
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' 
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
