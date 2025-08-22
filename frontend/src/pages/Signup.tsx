@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 const Signup: React.FC = () => {
   const [formData, setFormData] = useState({

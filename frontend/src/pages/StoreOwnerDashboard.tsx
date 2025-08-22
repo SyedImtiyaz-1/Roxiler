@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { storesAPI, ratingsAPI } from '../services/api';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription } from '../components/ui/alert';
 import { 
   Store, 
   Star, 
   Users, 
-  LogOut, 
-  Search, 
-  BarChart3,
-  ArrowLeft,
+  LogOut,
   User,
-  Calendar
+  Building2,
+  TrendingUp
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import type { Store as StoreType, Rating } from '../types';
 
 const StoreOwnerDashboard: React.FC = () => {
@@ -29,46 +21,46 @@ const StoreOwnerDashboard: React.FC = () => {
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
 
   useEffect(() => {
-    fetchStoreData();
+    fetchMyStores();
   }, []);
 
-  const fetchStoreData = async () => {
+  const fetchMyStores = async () => {
     try {
       setLoading(true);
-      const stores = await storesAPI.getMyStores();
-      setMyStores(stores);
-
-      // Fetch ratings for each store
-      const ratingsData: { [key: string]: Rating[] } = {};
-      for (const store of stores) {
-        try {
-          const ratings = await ratingsAPI.getByStore(store.id);
-          ratingsData[store.id] = ratings;
-        } catch (err) {
-          ratingsData[store.id] = [];
-        }
-      }
-      setStoreRatings(ratingsData);
-
-      // Set first store as selected by default
-      if (stores.length > 0) {
-        setSelectedStore(stores[0]);
+      const storesData = await storesAPI.getMyStores();
+      setMyStores(storesData);
+      
+      if (storesData.length > 0) {
+        setSelectedStore(storesData[0]);
+        await fetchStoreRatings(storesData[0].id);
       }
     } catch (err: any) {
-      setError('Failed to load store data. Please try again.');
+      setError(err.response?.data?.message || 'Failed to fetch stores');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const fetchStoreRatings = async (storeId: string) => {
+    try {
+      const ratingsData = await ratingsAPI.getByStore(storeId);
+      setStoreRatings(prev => ({ ...prev, [storeId]: ratingsData }));
+    } catch (err: any) {
+      console.error('Failed to fetch store ratings:', err);
+    }
+  };
+
+  const handleStoreSelect = async (store: StoreType) => {
+    setSelectedStore(store);
+    if (!storeRatings[store.id]) {
+      await fetchStoreRatings(store.id);
+    }
   };
 
   const getAverageRating = (ratings: Rating[]) => {
-    if (ratings.length === 0) return 0;
-    const sum = ratings.reduce((acc, rating) => acc + rating.ratingValue, 0);
-    return (sum / ratings.length).toFixed(1);
+    if (ratings.length === 0) return 'No ratings';
+    const average = ratings.reduce((sum, rating) => sum + rating.ratingValue, 0) / ratings.length;
+    return average.toFixed(1);
   };
 
   const getRatingDistribution = (ratings: Rating[]) => {
@@ -79,22 +71,61 @@ const StoreOwnerDashboard: React.FC = () => {
     return distribution;
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   if (loading) {
     return (
       <div className="dashboard-container">
-        <div className="dashboard-content">
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div className="animate-spin" style={{ 
-              border: '4px solid #f3f4f6', 
-              borderTop: '4px solid #3b82f6', 
-              borderRadius: '50%', 
-              width: '40px', 
-              height: '40px', 
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1rem'
-            }}></div>
-            <p>Loading your stores...</p>
+        <div className="dashboard-header">
+          <div className="header-container">
+            <div>
+              <h1 className="app-title">Store Rating System</h1>
+              <p className="app-subtitle">Store Owner Dashboard</p>
+            </div>
+            <div className="header-actions">
+              <div className="role-badge">
+                <Building2 className="h-4 w-4" />
+                <span>Store Owner</span>
+              </div>
+              <button onClick={handleLogout} className="logout-button">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
           </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="dashboard-header">
+          <div className="header-container">
+            <div>
+              <h1 className="app-title">Store Rating System</h1>
+              <p className="app-subtitle">Store Owner Dashboard</p>
+            </div>
+            <div className="header-actions">
+              <div className="role-badge">
+                <Building2 className="h-4 w-4" />
+                <span>Store Owner</span>
+              </div>
+              <button onClick={handleLogout} className="logout-button">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="error-message">{error}</div>
         </div>
       </div>
     );
@@ -102,54 +133,37 @@ const StoreOwnerDashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Header */}
       <div className="dashboard-header">
         <div className="header-container">
-          <div className="header-left">
-            <Link to="/dashboard" className="logout-button" style={{ textDecoration: 'none' }}>
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
-            </Link>
-            <div className="header-divider"></div>
-            <div>
-              <div className="app-title">Store Owner Dashboard</div>
-              <div className="app-subtitle">Manage your stores and view ratings</div>
-            </div>
-            <div className="header-divider"></div>
-            <div className="role-badge">
-              <Store className="h-4 w-4" />
-              <span>STORE OWNER</span>
-            </div>
+          <div>
+            <h1 className="app-title">Store Rating System</h1>
+            <p className="app-subtitle">Store Owner Dashboard</p>
           </div>
-          <button className="logout-button" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
-          </button>
+          <div className="header-actions">
+            <div className="role-badge">
+              <Building2 className="h-4 w-4" />
+              <span>Store Owner</span>
+            </div>
+            <button onClick={handleLogout} className="logout-button">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="dashboard-content">
-        {error && (
-          <Alert variant="destructive" style={{ marginBottom: '1rem' }}>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Welcome Section */}
-        <div className="welcome-section">
-          <h2 className="welcome-title">Welcome back, {user?.name}!</h2>
-          <p className="welcome-subtitle">Manage your stores and monitor customer feedback</p>
-        </div>
-
         {myStores.length === 0 ? (
           <div className="user-info-card">
-            <div className="card-title">
-              <Store className="h-5 w-5" />
-              <span>No Stores Found</span>
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <Store className="h-12 w-12" style={{ color: '#9ca3af', margin: '0 auto 1rem' }} />
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                No stores found
+              </h3>
+              <p style={{ color: '#6b7280' }}>
+                You don't have any stores assigned to your account.
+              </p>
             </div>
-            <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-              You don't have any stores yet. Contact the administrator to add stores to your account.
-            </p>
           </div>
         ) : (
           <>
@@ -157,21 +171,20 @@ const StoreOwnerDashboard: React.FC = () => {
             <div className="user-info-card">
               <div className="card-title">
                 <Store className="h-5 w-5" />
-                <span>Your Stores</span>
+                <span>Select Store</span>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {myStores.map((store) => (
                   <button
                     key={store.id}
-                    onClick={() => setSelectedStore(store)}
+                    onClick={() => handleStoreSelect(store)}
                     style={{
-                      padding: '0.75rem 1rem',
+                      padding: '0.5rem 1rem',
                       border: selectedStore?.id === store.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
                       borderRadius: '0.375rem',
                       background: selectedStore?.id === store.id ? '#eff6ff' : 'white',
                       color: selectedStore?.id === store.id ? '#1e40af' : '#374151',
                       cursor: 'pointer',
-                      fontWeight: selectedStore?.id === store.id ? '600' : '500',
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -181,85 +194,80 @@ const StoreOwnerDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Selected Store Analytics */}
+            {/* Store Analytics */}
             {selectedStore && (
               <>
+                <div className="actions-grid" style={{ marginBottom: '2rem' }}>
+                  <div className="action-card">
+                    <div className="action-content">
+                      <div className="action-icon blue">
+                        <Star className="h-6 w-6" />
+                      </div>
+                      <div className="action-text">
+                        <h4>{getAverageRating(storeRatings[selectedStore.id] || [])}</h4>
+                        <p>Average Rating</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="action-card">
+                    <div className="action-content">
+                      <div className="action-icon green">
+                        <Users className="h-6 w-6" />
+                      </div>
+                      <div className="action-text">
+                        <h4>{storeRatings[selectedStore.id]?.length || 0}</h4>
+                        <p>Total Ratings</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="action-card">
+                    <div className="action-content">
+                      <div className="action-icon yellow">
+                        <Store className="h-6 w-6" />
+                      </div>
+                      <div className="action-text">
+                        <h4>{selectedStore.name}</h4>
+                        <p>Store Name</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Distribution */}
                 <div className="user-info-card">
                   <div className="card-title">
-                    <BarChart3 className="h-5 w-5" />
-                    <span>{selectedStore.name} - Analytics</span>
+                    <TrendingUp className="h-5 w-5" />
+                    <span>Rating Distribution</span>
                   </div>
-                  
-                  <div className="actions-grid" style={{ marginBottom: '2rem' }}>
-                    <div className="action-card">
-                      <div className="action-content">
-                        <div className="action-icon blue">
-                          <Star className="h-6 w-6" />
-                        </div>
-                        <div className="action-text">
-                          <h4>{getAverageRating(storeRatings[selectedStore.id] || [])}</h4>
-                          <p>Average Rating</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="action-card">
-                      <div className="action-content">
-                        <div className="action-icon green">
-                          <Users className="h-6 w-6" />
-                        </div>
-                        <div className="action-text">
-                          <h4>{storeRatings[selectedStore.id]?.length || 0}</h4>
-                          <p>Total Ratings</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="action-card">
-                      <div className="action-content">
-                        <div className="action-icon yellow">
-                          <Store className="h-6 w-6" />
-                        </div>
-                        <div className="action-text">
-                          <h4>{selectedStore.name}</h4>
-                          <p>Store Name</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Rating Distribution */}
-                  <div style={{ marginBottom: '2rem' }}>
-                    <h4 style={{ marginBottom: '1rem', color: '#1e293b', fontWeight: '600' }}>
-                      Rating Distribution
-                    </h4>
-                    <div style={{ display: 'grid', gap: '0.5rem' }}>
-                      {[5, 4, 3, 2, 1].map((rating) => {
-                        const count = getRatingDistribution(storeRatings[selectedStore.id] || [])[rating as keyof ReturnType<typeof getRatingDistribution>];
-                        const total = storeRatings[selectedStore.id]?.length || 0;
-                        const percentage = total > 0 ? (count / total) * 100 : 0;
-                        
-                        return (
-                          <div key={rating} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', minWidth: '60px' }}>
-                              <span style={{ fontWeight: '600' }}>{rating}</span>
-                              <Star className="h-4 w-4" style={{ color: '#f59e0b' }} />
-                            </div>
-                            <div style={{ flex: 1, background: '#f1f5f9', borderRadius: '0.25rem', height: '8px' }}>
-                              <div 
-                                style={{ 
-                                  width: `${percentage}%`, 
-                                  height: '100%', 
-                                  background: '#3b82f6', 
-                                  borderRadius: '0.25rem' 
-                                }}
-                              />
-                            </div>
-                            <span style={{ minWidth: '40px', textAlign: 'right', fontSize: '0.875rem', color: '#64748b' }}>
-                              {count}
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                      const count = getRatingDistribution(storeRatings[selectedStore.id] || [])[rating as keyof ReturnType<typeof getRatingDistribution>];
+                      const total = storeRatings[selectedStore.id]?.length || 0;
+                      const percentage = total > 0 ? (count / total) * 100 : 0;
+                      
+                      return (
+                        <div key={rating} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', minWidth: '60px' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>
+                              {rating}★
                             </span>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div style={{ flex: 1, background: '#f1f5f9', borderRadius: '0.25rem', height: '8px', overflow: 'hidden' }}>
+                            <div 
+                              style={{ 
+                                width: `${percentage}%`, 
+                                height: '100%', 
+                                background: '#f59e0b',
+                                transition: 'width 0.3s ease'
+                              }} 
+                            />
+                          </div>
+                          <span style={{ fontSize: '0.875rem', color: '#64748b', minWidth: '40px', textAlign: 'right' }}>
+                            {count}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -267,13 +275,12 @@ const StoreOwnerDashboard: React.FC = () => {
                 <div className="user-info-card">
                   <div className="card-title">
                     <Users className="h-5 w-5" />
-                    <span>Users Who Rated {selectedStore.name}</span>
+                    <span>User Ratings ({storeRatings[selectedStore.id]?.length || 0})</span>
                   </div>
-                  
                   {storeRatings[selectedStore.id]?.length === 0 ? (
-                    <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem' }}>
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                       No ratings yet for this store.
-                    </p>
+                    </div>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -289,32 +296,18 @@ const StoreOwnerDashboard: React.FC = () => {
                             <tr key={rating.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '0.75rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <User className="h-4 w-4" style={{ color: '#64748b' }} />
+                                  <User className="h-4 w-4" style={{ color: '#9ca3af' }} />
                                   <span>{rating.user?.name || 'Unknown User'}</span>
                                 </div>
                               </td>
                               <td style={{ padding: '0.75rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star 
-                                      key={i} 
-                                      className="h-4 w-4" 
-                                      style={{ 
-                                        color: i < rating.ratingValue ? '#f59e0b' : '#e2e8f0',
-                                        fill: i < rating.ratingValue ? '#f59e0b' : 'none'
-                                      }} 
-                                    />
-                                  ))}
-                                  <span style={{ marginLeft: '0.5rem', fontWeight: '600' }}>
-                                    {rating.ratingValue}/5
-                                  </span>
+                                  <Star className="h-4 w-4" style={{ color: '#f59e0b' }} />
+                                  <span>{rating.ratingValue}★</span>
                                 </div>
                               </td>
-                              <td style={{ padding: '0.75rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#64748b' }}>
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{new Date(rating.createdAt).toLocaleDateString()}</span>
-                                </div>
+                              <td style={{ padding: '0.75rem', color: '#64748b', fontSize: '0.875rem' }}>
+                                {new Date(rating.createdAt).toLocaleDateString()}
                               </td>
                             </tr>
                           ))}
