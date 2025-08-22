@@ -5,6 +5,17 @@ A full-stack web application that allows users to submit ratings for stores regi
 
 ## Video Link : https://youtu.be/_vkwZiK7qVo
 
+## Screenshots 
+
+<img width="1919" height="970" alt="image" src="https://github.com/user-attachments/assets/8ae343aa-1349-44d1-927d-85309cc3c50b" />
+
+<img width="1919" height="970" alt="image" src="https://github.com/user-attachments/assets/09f0ebb4-2490-4616-8a29-9de9af94c523" />
+
+<img width="1919" height="970" alt="image" src="https://github.com/user-attachments/assets/a418c255-80e8-4ca6-80f4-23fa69aef6d2" />
+
+<img width="1919" height="970" alt="image" src="https://github.com/user-attachments/assets/5fa8c541-e23a-434d-ab6f-8ad18cab4c52" />
+
+
 ## 🚀 Features
 
 ### System Administrator
